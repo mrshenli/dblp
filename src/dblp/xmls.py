@@ -14,7 +14,7 @@ class Parser:
 
 def show_tag_formats(xmlfile, dtdfile):
     dtd = etree.DTD(open(dtdfile, 'r'))
-    tree = objectify.parse(open(xmlfile, 'r'))
+    tree = objectify.parse(open(xmlfile, 'r'), resolve_entities=False)
     print dtd.validate(tree)
     root = tree.getroot()
 
