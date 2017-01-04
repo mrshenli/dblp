@@ -12,9 +12,8 @@ def conferences_by_year(context, fout):
     conf_name = ''
     year = 0
     data = {}
+    cnt = 0
 
-    #read chunk line by line
-    #we focus author and title
     for event, elem in context:
 
         if elem.tag == 'year':
@@ -24,19 +23,21 @@ def conferences_by_year(context, fout):
             if elem.text:
                 conf_name = unidecode(elem.text)
 
-        if elem.tag in [u'proceedings', u'article'] and len(conf_name) > 0:
+        if elem.tag in ['inproceedings', 'proceedings', 'article'] and len(conf_name) > 0:
+            cnt += 1
+            if cnt % 10000 == 0:
+                print(cnt)
             if year not in data:
                 data[year] = Set()
             
             data[year].add(conf_name)
-            print("%d,%s"%(year, conf_name))
 
             year = 0
             conf_name = ''
  
         elem.clear()
         while elem.getprevious() is not None and elem.getparent() is not None:
-            del elem.getparent()[0]
+                del elem.getparent()[0]
     del context
     
     for year in data:
@@ -44,10 +45,48 @@ def conferences_by_year(context, fout):
             fout.write('%d,%s\n'%(year, conf_name))
 
 
+def conferences_by_year(fin, fout):
+    fout = open(fout, 'w')
+    parser = etree.XMLParser(load_dtd=True)
+    tree = etree.parse(fin, parser)
 
+    data = {}
+    year = 0
+    cnt = 0
+    name = ''
+    for item in tree.getroot():
+        cnt += 1
+        if cnt % 10000 == 0:
+            print(cnt)
+        for field in item:
+            if field.tag == "year":
+                year = int(field.text)
+            if field.tag in ['journal', 'booktitle']:
+                name = unidecode(field.text).replace(",", "")
+
+        if year not in data:
+            data[year] = Set()
+            
+        data[year].add(name)
+        year = 0
+        name = ''
+
+    for year in data:
+        for name in data[year]:
+            fout.write('%d,%s\n'%(year, name))
+
+
+if __name__=="__main__":
+    fin = "../../data/inproceedings_proceedings_article.xml"
+    fout = "../../data/conference_by_year.csv"
+    conferences_by_year(fin, fout)
+
+
+"""
 if __name__ == "__main__":
     fout = open('conference_by_year.csv', 'w')
     context = etree.iterparse('../../data/small.xml', load_dtd=True,html=True)
     #To use iterparse, we don't need to read all of xml.
     conferences_by_year(context, fout)
     fout.close()
+"""
